@@ -1,0 +1,117 @@
+[project]
+name = "khattat"
+version = "0.1.0"
+description = "Semantic typography with an OCR readability loss (arXiv:2410.03748)"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = "MIT"
+
+dependencies = [
+  "uharfbuzz>=0.39",
+  "fonttools>=4.53",
+  "diffusers>=0.31",
+  "transformers>=4.50,<5",
+  "accelerate>=1.0",
+  "safetensors>=0.4",
+  "open-clip-torch>=2.24",
+  "ftfy>=6.1",
+  "gdown>=5.0",
+  "kornia>=0.7",
+  # Later versions dropped the encoder the OCR loss uses.
+  "surya-ocr==0.4.15",
+  "opencv-python-headless>=4.9,<5",
+  "scipy>=1.14",
+  "shapely>=2.0",
+  "numpy>=1.26",
+  "pillow>=10.2",
+  # Needed by diffvg's Python package.
+  "matplotlib>=3.8",
+  "svgwrite>=1.4",
+  "svgpathtools>=1.6",
+  "cssutils>=2.11",
+  "scikit-image>=0.24",
+  "typer>=0.12",
+  "rich>=13.7",
+]
+
+[project.optional-dependencies]
+# Exactly one torch build.
+cpu = ["torch>=2.6", "torchvision>=0.21"]
+cu128 = ["torch>=2.6", "torchvision>=0.21"]
+cu130 = ["torch>=2.6", "torchvision>=0.21"]
+anthropic = ["anthropic>=0.40"]
+
+[project.scripts]
+khattat = "khattat.cli:app"
+
+[dependency-groups]
+dev = ["ruff>=0.13", "ty>=0.0.1a20", "pre-commit>=4.0"]
+
+[build-system]
+requires = ["uv_build>=0.8.15,<0.10"]
+build-backend = "uv_build"
+
+[tool.uv]
+default-groups = ["dev"]
+# surya-ocr depends on the GUI build of OpenCV, which needs X11 libraries.
+override-dependencies = ["opencv-python; sys_platform == 'never'"]
+conflicts = [[{ extra = "cpu" }, { extra = "cu128" }, { extra = "cu130" }]]
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cpu", extra = "cpu" },
+  { index = "pytorch-cu128", extra = "cu128" },
+  { index = "pytorch-cu130", extra = "cu130" },
+]
+torchvision = [
+  { index = "pytorch-cpu", extra = "cpu" },
+  { index = "pytorch-cu128", extra = "cu128" },
+  { index = "pytorch-cu130", extra = "cu130" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["third_party"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF", "PTH", "C4"]
+ignore = [
+  "E501",    # the formatter owns line length
+  "RUF001",  # Arabic text in strings is intentional
+  "RUF002",
+  "RUF003",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/*.py" = ["E402"]  # env vars must be set before torch is imported
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ty.src]
+exclude = ["third_party"]
+
+[tool.ty.analysis]
+# Built locally or optional, so absent in CI.
+allowed-unresolved-imports = ["pydiffvg", "anthropic"]
+
+# uharfbuzz ships no type stubs.
+[[tool.ty.overrides]]
+include = ["src/khattat/fonts/shaping.py"]
+rules = { unresolved-attribute = "ignore" }

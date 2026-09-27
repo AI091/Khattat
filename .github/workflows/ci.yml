@@ -1,0 +1,26 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - run: uv sync --locked --extra cpu
+
+      - name: lint
+        run: |
+          uv run ruff format --check .
+          uv run ruff check .
+
+      - name: typecheck
+        run: uv run ty check src
